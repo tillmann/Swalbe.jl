@@ -15,14 +15,19 @@ function dropletrelax(
     println("Simulating an out of equilibrium droplet")
     area = []
     fout, ftemp, feq, height, velx, vely, vsq, pressure, Fx, Fy, slipx, slipy, h∇px, h∇py = Swalbe.Sys(sys, device, false, T)
-    Swalbe.singledroplet(height, radius, θ₀, center)
+    if device == "CPU"
+        Swalbe.singledroplet(height, radius, θ₀, center)
+    elseif device == "GPU"
+        h = zeros(size(height))
+        Swalbe.singledroplet(h, radius, θ₀, center)
+        height = CUDA.adapt(CuArray, h)
+    end
     Swalbe.equilibrium!(feq, height, velx, vely, vsq)
     ftemp .= feq
     for t in 1:sys.Tmax
         if t % sys.tdump == 0
             mass = 0.0
             mass = sum(height)
-            difference = maximum(height) - minimum(height)
             if verbos
                 println("Time step $t mass is $(round(mass, digits=3))")
             end
@@ -37,5 +42,5 @@ function dropletrelax(
         Swalbe.BGKandStream!(fout, feq, ftemp, -Fx, -Fy)
         Swalbe.moments!(height, velx, vely, fout)
     end
-    return height, area
+    return Array(height), area
 end

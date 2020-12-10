@@ -115,7 +115,15 @@ function run_dropletrelax(
     println("Simulating an out of equilibrium droplet")
     # area = []
     fout, ftemp, feq, height, velx, vely, vsq, pressure, Fx, Fy, slipx, slipy, h∇px, h∇py = Swalbe.Sys(sys, device, false, T)
-    Swalbe.singledroplet(height, radius, θ₀, center)
+    # Generate the initial droplet
+    if device == "CPU"
+        Swalbe.singledroplet(height, radius, θ₀, center)
+    elseif device == "GPU"
+        h = zeros(size(height))
+        Swalbe.singledroplet(h, radius, θ₀, center)
+        height = CUDA.adapt(CuArray, h)
+    end
+    # Compute an equilibrium
     Swalbe.equilibrium!(feq, height, velx, vely, vsq)
     ftemp .= feq
     for t in 1:sys.Tmax
@@ -157,7 +165,15 @@ function run_dropletpatterned(
 )
     println("Simulating a droplet on a patterned substrate")
     fout, ftemp, feq, height, velx, vely, vsq, pressure, Fx, Fy, slipx, slipy, h∇px, h∇py = Swalbe.Sys(sys, device, false, T)
-    Swalbe.singledroplet(height, radius, θ₀, center)
+    # Generate the initial droplet
+    if device == "CPU"
+        Swalbe.singledroplet(height, radius, θ₀, center)
+    elseif device == "GPU"
+        h = zeros(size(height))
+        Swalbe.singledroplet(h, radius, θ₀, center)
+        height = CUDA.adapt(CuArray, h)
+    end
+
     Swalbe.equilibrium!(feq, height, velx, vely, vsq)
     ftemp .= feq
     for t in 1:sys.Tmax
@@ -201,8 +217,17 @@ function run_dropletforced(
     T=Float64
 )
     println("Simulating a sliding droplet")
+    # Allocate memory
     fout, ftemp, feq, height, velx, vely, vsq, pressure, Fx, Fy, slipx, slipy, h∇px, h∇py = Swalbe.Sys(sys, device, false, T)
-    Swalbe.singledroplet(height, radius, θ₀, center)
+    # Generate the initial droplet
+    if device == "CPU"
+        Swalbe.singledroplet(height, radius, θ₀, center)
+    elseif device == "GPU"
+        h = zeros(size(height))
+        Swalbe.singledroplet(h, radius, θ₀, center)
+        height = CUDA.adapt(CuArray, h)
+    end
+    # Compute an equilibrium
     Swalbe.equilibrium!(feq, height, velx, vely, vsq)
     ftemp .= feq
     println("Starting the lattice Boltzmann time loop")
